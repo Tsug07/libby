@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QIcon, QAction, QPixmap, QPainter, QFont, QPalette, QColor
 from PySide6.QtCore import Qt, QTimer, QThread, Signal, QSize
+from PySide6.QtWidgets import QToolButton
 
 # Caminho da pasta de config no AppData
 APPDATA_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "MeuHub")
@@ -40,13 +41,14 @@ class IconLoader(QThread):
             except Exception:
                 continue
 
+# --- dentro da classe EditProgramDialog ---
 class EditProgramDialog(QDialog):
     """Dialog para editar informações do programa"""
     def __init__(self, program_info, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Editar Programa")
         self.setModal(True)
-        self.resize(400, 300)
+        self.resize(400, 350)
         
         layout = QVBoxLayout(self)
         
@@ -66,6 +68,16 @@ class EditProgramDialog(QDialog):
         self.favorite_check = QCheckBox("Marcar como favorito")
         self.favorite_check.setChecked(program_info.get('favorite', False))
         layout.addWidget(self.favorite_check)
+
+        # Ícone personalizado
+        layout.addWidget(QLabel("Ícone personalizado:"))
+        self.icon_path_edit = QLineEdit(program_info.get('icon', ''))
+        self.icon_btn = QPushButton("Escolher Ícone")
+        self.icon_btn.clicked.connect(self.escolher_icone)
+        icon_layout = QHBoxLayout()
+        icon_layout.addWidget(self.icon_path_edit)
+        icon_layout.addWidget(self.icon_btn)
+        layout.addLayout(icon_layout)
         
         # Botões
         button_layout = QHBoxLayout()
@@ -79,20 +91,32 @@ class EditProgramDialog(QDialog):
         button_layout.addWidget(self.cancel_btn)
         layout.addLayout(button_layout)
     
+    def escolher_icone(self):
+        arquivo, _ = QFileDialog.getOpenFileName(
+            self, "Escolher ícone", "", "Imagens (*.png *.ico *.jpg);;Todos (*.*)"
+        )
+        if arquivo:
+            self.icon_path_edit.setText(arquivo)
+
     def get_program_info(self):
         return {
             'display_name': self.name_edit.text(),
             'description': self.desc_edit.toPlainText(),
-            'favorite': self.favorite_check.isChecked()
+            'favorite': self.favorite_check.isChecked(),
+            'icon': self.icon_path_edit.text()
         }
 
-class ModernButton(QPushButton):
-    """Botão customizado com visual moderno"""
+
+class ModernButton(QToolButton):
+    """Botão customizado com ícone em cima e texto embaixo"""
     def __init__(self, text, parent=None):
-        super().__init__(text, parent)
-        self.setMinimumSize(120, 80)
+        super().__init__(parent)
+        self.setText(text)
+        self.setMinimumSize(120, 100)
+        self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)  # <- aqui
         self.is_favorite = False
         self.launch_count = 0
+
         
     def set_favorite(self, is_favorite):
         self.is_favorite = is_favorite
@@ -104,25 +128,23 @@ class ModernButton(QPushButton):
     
     def update_style(self):
         base_style = """
-            QPushButton {
+            QToolButton {
                 border: 2px solid #3498db;
                 border-radius: 8px;
                 padding: 8px;
                 font-weight: bold;
                 text-align: center;
             }
-            QPushButton:hover {
+            QToolButton:hover {
                 background-color: #3498db;
                 color: white;
             }
-            QPushButton:pressed {
+            QToolButton:pressed {
                 background-color: #2980b9;
             }
         """
-        
         if self.is_favorite:
             base_style = base_style.replace("#3498db", "#e74c3c")
-            
         self.setStyleSheet(base_style)
 
 class HubApp(QWidget):
@@ -598,14 +620,19 @@ class HubApp(QWidget):
                             lambda pos, b=btn, c=caminho: self.show_context_menu(b, c)
                         )
                         
-                        # Tenta carregar ícone (de forma mais segura)
-                        try:
-                            icon = QIcon(caminho)
-                            if not icon.isNull():
-                                btn.setIcon(icon)
-                                btn.setIconSize(QSize(32, 32))
-                        except Exception:
-                            pass  # Se der erro, continua sem ícone
+                        # Carregar ícone
+                        icon = None
+                        icon_path = program_data.get('icon', '')
+                        if icon_path and os.path.exists(icon_path):
+                            icon = QIcon(icon_path)
+                        else:
+                            icon = QIcon(caminho)  # tenta pegar do exe
+
+                        if not icon.isNull():
+                            btn.setIcon(icon)
+                            btn.setIconSize(QSize(64, 64))  # maior para dar destaque
+                            btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)  # texto embaixo do ícone
+
                         
                         grid.addWidget(btn, row, col)
                         self.botoes.append((nome.lower(), btn, program_data))
