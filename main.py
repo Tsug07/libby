@@ -325,6 +325,38 @@ class HubApp(QWidget):
         self.search_bar.setEnabled(ativo)
         self.filter_combo.setEnabled(ativo)
 
+    def show_click_menu(self, button, caminho):
+        """Mostra menu ao clicar no botão"""
+        menu = QMenu(self)
+
+        abrir_action = QAction("▶️ Abrir", self)
+        abrir_action.triggered.connect(lambda: self.abrir_programa(caminho))
+        menu.addAction(abrir_action)
+
+        info_action = QAction("ℹ️ Informações", self)
+        info_action.triggered.connect(lambda: self.mostrar_informacoes(caminho))
+        menu.addAction(info_action)
+
+        menu.exec(button.mapToGlobal(button.rect().center()))
+
+    def mostrar_informacoes(self, caminho):
+        """Mostra informações do programa em um popup"""
+        key = caminho.replace(self.hub_dir, "").strip(os.sep)
+        program_data = self.program_info.get(key, {})
+
+        nome = program_data.get('display_name', os.path.basename(caminho))
+        descricao = program_data.get('description', "Sem descrição")
+        contador = program_data.get('launch_count', 0)
+        ultima = program_data.get('last_opened', "Nunca")
+
+        QMessageBox.information(
+            self, "Informações",
+            f"Nome: {nome}\n\n"
+            f"Descrição: {descricao}\n\n"
+            f"Executado: {contador} vez(es)\n"
+            f"Última vez: {ultima}"
+        )
+
     def salvar_config(self):
         """Salva configurações no config.json"""
         try:
@@ -559,7 +591,8 @@ class HubApp(QWidget):
                         btn.setToolTip(tooltip)
                         
                         # Conecta eventos
-                        btn.clicked.connect(lambda _, c=caminho: self.abrir_programa(c))
+                        # btn.clicked.connect(lambda _, c=caminho: self.abrir_programa(c))
+                        btn.clicked.connect(lambda _, b=btn, c=caminho: self.show_click_menu(b, c))
                         btn.setContextMenuPolicy(Qt.CustomContextMenu)
                         btn.customContextMenuRequested.connect(
                             lambda pos, b=btn, c=caminho: self.show_context_menu(b, c)
