@@ -1,3 +1,3 @@
 @echo off
-cd /d "%~dp0"
+cd /d "c:\Users\Canella e Santos\Desktop\Hugo\RPA\libby"
 start "" pythonw main.py
