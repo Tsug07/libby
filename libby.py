@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QMenu, QDialog, QLabel, QTextEdit, QCheckBox, QComboBox,
     QProgressBar, QSplashScreen, QFrame, QSizePolicy, QSystemTrayIcon
 )
-from PySide6.QtGui import QIcon, QAction, QPixmap, QColor, QCursor
+from PySide6.QtGui import QIcon, QAction, QPixmap, QColor, QCursor, QImage
 from PySide6.QtCore import Qt, QThread, Signal
 
 # Caminho da pasta de assets (relativo ao script)
@@ -394,7 +394,25 @@ class HubApp(QWidget):
 
     def setup_tray_icon(self):
         """Configura o ícone da bandeja do sistema"""
-        tray_pixmap = QPixmap(os.path.join(ASSETS_DIR, "android-chrome-192x192.png"))
+        img = QImage(os.path.join(ASSETS_DIR, "android-chrome-192x192.png"))
+
+        # Recorta margens transparentes para o ícone ocupar mais espaço na bandeja
+        w, h = img.width(), img.height()
+        left, top, right, bottom = w, h, 0, 0
+        for y in range(h):
+            for x in range(w):
+                if (img.pixel(x, y) >> 24) & 0xFF > 0:
+                    left = min(left, x)
+                    top = min(top, y)
+                    right = max(right, x)
+                    bottom = max(bottom, y)
+
+        if right > left and bottom > top:
+            cropped = img.copy(left, top, right - left + 1, bottom - top + 1)
+            tray_pixmap = QPixmap.fromImage(cropped)
+        else:
+            tray_pixmap = QPixmap(os.path.join(ASSETS_DIR, "android-chrome-192x192.png"))
+
         self.tray_icon = QSystemTrayIcon(self)
         self.tray_icon.setIcon(QIcon(tray_pixmap))
         self.tray_icon.setToolTip("Libby - Gerenciador de Programas")
