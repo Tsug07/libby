@@ -11,8 +11,11 @@ from PySide6.QtWidgets import (
     QMenu, QDialog, QLabel, QTextEdit, QCheckBox, QComboBox,
     QProgressBar, QSplashScreen, QFrame, QSizePolicy, QSystemTrayIcon
 )
-from PySide6.QtGui import QIcon, QAction, QPixmap, QPainter, QFont, QColor, QCursor
+from PySide6.QtGui import QIcon, QAction, QPixmap, QColor, QCursor
 from PySide6.QtCore import Qt, QThread, Signal
+
+# Caminho da pasta de assets (relativo ao script)
+ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 
 # Caminho da pasta de config no AppData
 APPDATA_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "MeuHub")
@@ -363,6 +366,7 @@ class HubApp(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Libby v2.0")
+        self.setWindowIcon(QIcon(os.path.join(ASSETS_DIR, "logolibby.png")))
         self.resize(1000, 700)
 
         # Configurações
@@ -390,22 +394,9 @@ class HubApp(QWidget):
 
     def setup_tray_icon(self):
         """Configura o ícone da bandeja do sistema"""
-        # Cria ícone roxo
-        pixmap = QPixmap(64, 64)
-        pixmap.fill(Qt.transparent)
-        painter = QPainter(pixmap)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setBrush(QColor("#9b59b6"))  # Roxo
-        painter.setPen(Qt.NoPen)
-        painter.drawEllipse(4, 4, 56, 56)
-        painter.setPen(QColor("white"))
-        font = QFont("Arial", 24, QFont.Bold)
-        painter.setFont(font)
-        painter.drawText(pixmap.rect(), Qt.AlignCenter, "L")
-        painter.end()
-
+        tray_pixmap = QPixmap(os.path.join(ASSETS_DIR, "android-chrome-192x192.png"))
         self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(QIcon(pixmap))
+        self.tray_icon.setIcon(QIcon(tray_pixmap))
         self.tray_icon.setToolTip("Libby - Gerenciador de Programas")
 
         # Menu da bandeja
@@ -462,7 +453,14 @@ class HubApp(QWidget):
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(16, 8, 16, 8)
 
-        # Titulo
+        # Logo + Titulo
+        header_logo = QLabel()
+        header_logo_pixmap = QPixmap(os.path.join(ASSETS_DIR, "favicon-32x32.png"))
+        if not header_logo_pixmap.isNull():
+            header_logo.setPixmap(header_logo_pixmap.scaled(28, 28, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        header_logo.setFixedSize(28, 28)
+        header_layout.addWidget(header_logo)
+
         title = QLabel("Libby")
         title.setStyleSheet("font-size: 18px; font-weight: bold; color: #0078d4;")
         header_layout.addWidget(title)
@@ -1159,16 +1157,15 @@ class HubApp(QWidget):
 def main():
     app = QApplication(sys.argv)
     
-    # Splash screen
-    pixmap = QPixmap(200, 200)
-    pixmap.fill(QColor("#0078d4"))
-    painter = QPainter(pixmap)
-    painter.setPen(QColor("white"))
-    font = QFont("Arial", 24, QFont.Bold)
-    painter.setFont(font)
-    painter.drawText(pixmap.rect(), Qt.AlignCenter, "Libby\nv2.0")
-    painter.end()
-    
+    # Splash screen com logo
+    logo_path = os.path.join(ASSETS_DIR, "logolibby.png")
+    pixmap = QPixmap(logo_path)
+    if pixmap.isNull():
+        pixmap = QPixmap(200, 200)
+        pixmap.fill(QColor("#0078d4"))
+    else:
+        pixmap = pixmap.scaled(300, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+
     splash = QSplashScreen(pixmap)
     splash.show()
     app.processEvents()
