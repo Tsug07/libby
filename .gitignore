@@ -51,7 +51,7 @@ env/
 venv/
 ENV/
 venv.bak/
-
+*.bat
 # Jupyter
 .ipynb_checkpoints
 
